@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - cicd-updates
 
 jobs:
   build-and-push:
