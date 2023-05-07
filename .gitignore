@@ -1,0 +1,35 @@
+# .NET Core build and runtime artifacts
+bin/
+obj/
+out/
+*.exe
+*.dll
+
+# Visual Studio and ReSharper cache files
+.vs/
+_ReSharper.*/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# NuGet packages
+packages/
+
+# Build and logs
+*.log
+
+# Configuration files
+appsettings.*.json
+
+# User-specific files
+*.rsuser
+
+# Temporary files
+*.tmp
+*.swp
+*.bak
+
+# OS generated files
+.DS_Store
+Thumbs.db

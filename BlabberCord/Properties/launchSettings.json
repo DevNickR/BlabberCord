@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "BlabberCord": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}
