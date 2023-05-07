@@ -125,7 +125,7 @@ namespace BlabberCord.Services
                 return;
             }
 
-            await slashCommand.RespondAsync($"Persona '{personaName}' created and ready for use (use `/select-persona`)", ephemeral: true);
+            await slashCommand.RespondAsync($"Persona '{personaName}' created. Restart the BlabberCord service and use `/select-persona`", ephemeral: true);
         }
 
         private async Task HandleResetConversationCommand(SocketSlashCommand slashCommand)

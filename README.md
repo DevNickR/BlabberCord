@@ -56,7 +56,7 @@ The bot maintains its history in memory. A restart will clear all of its memory.
 ### Commands
 `/select-persona` will start the personas feature and allow you to select a persona. This will only apply to the channel its used in and will reset its chat history.
 `/reset-conversation` will reset the chat history of the bot.
-
+`/add-persona` given a name and a prompt this will save the prompt to your prompts folder (if this folder is not persisted this will not work, mount the Prompts folder to a volume if using docker), a restart will be required for this to allow you to use the new persona.
 ## Features
 ### Personas
 The bot has a personas feature. This utilizes the system command available via chat gpt. This is an initial prompt that directs chat gpt. To use this feature a `.txt` file with the persona name must be placed in the `/Personas` directory.
