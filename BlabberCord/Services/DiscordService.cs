@@ -59,6 +59,9 @@ namespace BlabberCord.Services
                 case "reset-conversation":
                     await HandleResetConversationCommand(slashCommand);
                     break;
+                case "add-persona":
+                    await HandleAddPersonaCommand(slashCommand);
+                    break;
                 // Add more cases here to handle other slash commands
                 default:
                     await slashCommand.RespondAsync("Unknown command", ephemeral: true);
@@ -87,6 +90,42 @@ namespace BlabberCord.Services
 
             await slashCommand.RespondAsync($"Persona changed to {selectedPersona}", ephemeral: true);
 
+        }
+        private async Task HandleAddPersonaCommand(SocketSlashCommand slashCommand)
+        {
+            string personaName = slashCommand.Data.Options.FirstOrDefault(x => x.Name == "persona-name")?.Value.ToString();
+            string personaPrompt = slashCommand.Data.Options.FirstOrDefault(x => x.Name == "persona-prompt")?.Value.ToString();
+
+            if (string.IsNullOrEmpty(personaName) || string.IsNullOrEmpty(personaPrompt))
+            {
+                await slashCommand.RespondAsync("Invalid persona information", ephemeral: true);
+                return;
+            }
+
+            try
+            {
+                // Ensure the "Personas" folder exists in the current directory
+                string folderPath = Path.Combine(Environment.CurrentDirectory, "Personas");
+                if (!Directory.Exists(folderPath))
+                {
+                    Directory.CreateDirectory(folderPath);
+                }
+
+                // Combine the folder path with the user-provided filename to create the full file path
+                string filePath = Path.Combine(folderPath, $"{personaName}.txt");
+
+                // Write the content to the file, overwriting it if it already exists
+                await File.WriteAllTextAsync(filePath, personaPrompt);
+
+                Console.WriteLine("File saved successfully.");
+            }
+            catch (Exception ex)
+            {
+                await slashCommand.RespondAsync($"Failed with message: {ex.Message}", ephemeral: true);
+                return;
+            }
+
+            await slashCommand.RespondAsync($"Persona '{personaName}' created and ready for use (use `/select-persona`)", ephemeral: true);
         }
 
         private async Task HandleResetConversationCommand(SocketSlashCommand slashCommand)
@@ -302,8 +341,34 @@ namespace BlabberCord.Services
                 .AddOption(personaCommandOption)
                 ;
 
+
+            var addPersonaNameOption = new SlashCommandOptionBuilder()
+                .WithName("persona-name")
+                .WithDescription("Set the persona name")
+                .WithRequired(true)
+                .WithType(ApplicationCommandOptionType.String)
+                .WithMaxLength(30)
+                .WithMinLength(1)
+                ;
+            var addPersonaPromptNameOption = new SlashCommandOptionBuilder()
+                .WithName("persona-prompt")
+                .WithDescription("Set the persona prompt")
+                .WithRequired(true)
+                .WithType(ApplicationCommandOptionType.String)
+                .WithMaxLength(1500)
+                .WithMinLength(1)
+                ;
+            var addPersonaCommand = new SlashCommandBuilder()
+                .WithName("add-persona")
+                .WithDescription("Create (or update) a persona")
+                .AddOption(addPersonaNameOption)
+                .AddOption(addPersonaPromptNameOption)
+                ;
+
             await _client.CreateGlobalApplicationCommandAsync(selectPersonaCommand.Build());
             await _client.CreateGlobalApplicationCommandAsync(resetConverstionCommand.Build());
+            await _client.CreateGlobalApplicationCommandAsync(addPersonaCommand.Build());
+
             _logger.LogInformation($"Connected as {_client.CurrentUser}. Available personas: {string.Join(", ", personaNames)}");
         }
     }
