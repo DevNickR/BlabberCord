@@ -39,6 +39,6 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/blabber-cord:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/blabber-cord:${{ github.sha }}
-          platforms: linux/amd64,linux/arm/v7,linux/arm64
+          platforms: linux/amd64,linux/arm64
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
