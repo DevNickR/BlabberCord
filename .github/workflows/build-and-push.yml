@@ -41,3 +41,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
+
+      - name: Update Docker Hub Description
+        if: github.ref == 'refs/heads/main'
+        run: ./update_dockerhub_description.sh ${{ secrets.DOCKERHUB_USERNAME }} ${{ secrets.DOCKERHUB_TOKEN }} ${{ secrets.DOCKERHUB_USERNAME }}/blabber-cord ./README.md
