@@ -10,6 +10,19 @@
         public List<GptResponseChoice> Choices { get; set; }
     }
 
+    public class GptErrorResponse
+    {
+        public GptError Error { get; set; }
+    }
+
+    public class GptError
+    {
+        public string Message { get; set; }
+        public string Type { get; set; }
+        public string Param { get; set; }
+        public string Code { get; set; }
+    }
+
     public class GptResponseChoice
     {
         public GptMessage Message { get; set; }

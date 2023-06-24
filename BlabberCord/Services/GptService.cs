@@ -51,8 +51,10 @@ namespace BlabberCord.Services
             var response = await _httpClient.PostAsync(_apiEndpoint, content);
             if (!response.IsSuccessStatusCode)
             {
-                Console.WriteLine($"GPT API request failed: {response.ReasonPhrase}");
-                throw new Exception($"GPT API request failed: {response.ReasonPhrase}");
+                var errorContent = await response.Content.ReadFromJsonAsync<GptErrorResponse>();
+                var errMessage = $"GPT API request failed: {response.ReasonPhrase}. Code:'{errorContent?.Error?.Code}' Type:'{errorContent?.Error?.Type}' Message:'{errorContent?.Error?.Message}'";
+                Console.WriteLine(errMessage);
+                throw new Exception(errMessage);
             }
 
             var fullResponse = await response.Content.ReadFromJsonAsync<GptResponse>();
@@ -88,7 +90,7 @@ namespace BlabberCord.Services
                 Model = _gptModel,// "gpt-3.5-turbo",//gpt-4
                 Messages = _conversations[channelId],
                 Temperature = 0.7,
-                MaxTokens = 2000,
+                MaxTokens = 2048,
                 TopP = 1,
                 FrequencyPenalty = 1,
                 PresencePenalty = 1,

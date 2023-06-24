@@ -214,7 +214,6 @@ namespace BlabberCord.Services
                 {
 
                 }
-
             }
 
             if (string.IsNullOrEmpty(messageContent)) return;
