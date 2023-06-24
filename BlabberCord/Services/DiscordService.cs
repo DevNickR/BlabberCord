@@ -3,9 +3,18 @@ using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Buffers.Text;
+using System.Collections;
+using System.Collections.Generic;
+using System.Net.Http.Headers;
 using System.Reflection;
+using System.Runtime.Intrinsics.X86;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Web;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace BlabberCord.Services
 {
@@ -18,21 +27,34 @@ namespace BlabberCord.Services
         private readonly ILogger _logger;
         private readonly PersonaService _personaService;
 
-        public DiscordService(IServiceProvider services, ILogger<DiscordService> logger, PersonaService personaService)
+        private readonly HashSet<string> textMimeTypes = new HashSet<string>
         {
-            _services = services;
-            _client = services.GetRequiredService<DiscordSocketClient>();
-            _commandService = services.GetRequiredService<CommandService>();
-            _gptService = services.GetRequiredService<GptService>();
-            _logger = logger;
-            _personaService = personaService;
+            { "text/plain" },
+            { "text/csv" },
+            { "text/xml" },
+            { "text/html" },
+            { "text/css" },
+            { "text/javascript" },
+            { "text/markdown" },
+            { "application/json" },
+            // Add more file extensions and corresponding MIME types as needed
+        };
 
-            _client.Log += LogAsync;
-            _client.Ready += ReadyAsync;
-            _client.MessageReceived += MessageReceivedAsync;
-        }
 
-        public async Task StartAsync(string token)
+
+        public DiscordService(IServiceProvider services, ILogger<DiscordService> logger, PersonaService personaService)
+    {
+        _services = services;
+        _client = services.GetRequiredService<DiscordSocketClient>();
+        _commandService = services.GetRequiredService<CommandService>();
+        _gptService = services.GetRequiredService<GptService>();
+        _logger = logger;
+        _personaService = personaService;
+        _client.Log += LogAsync;
+        _client.Ready += ReadyAsync;
+        _client.MessageReceived += MessageReceivedAsync;
+    }
+    public async Task StartAsync(string token)
         {
             await _commandService.AddModulesAsync(assembly: Assembly.GetEntryAssembly(), _services);
 
@@ -176,6 +198,25 @@ namespace BlabberCord.Services
                 ? message.Content.Replace($"<@!{_client.CurrentUser.Id}>", "").Trim()
                 : message.Content.Trim();
 
+
+            if (rawMessage.Attachments.Any()) 
+            {
+                try {
+                    var textAttachments = await GetTextAttachmentContents(rawMessage.Attachments);
+
+                    foreach (KeyValuePair<string, string> pair in textAttachments)
+                    {
+                        messageContent += $"{Environment.NewLine}filename:`{pair.Key}`";
+                        messageContent += $"{Environment.NewLine}```{pair.Value}{Environment.NewLine}```{Environment.NewLine}";
+                    }
+                }
+                catch (Exception ex)
+                {
+
+                }
+
+            }
+
             if (string.IsNullOrEmpty(messageContent)) return;
 
             _logger.LogTrace($"User {message.Author} channel {message.Channel.Id} - {messageContent}");
@@ -187,6 +228,104 @@ namespace BlabberCord.Services
                 string response = await _gptService.GenerateResponseAsync(message.Channel.Id, messageContent);
 
                 await SendMessage(message, response);
+            }
+        }
+
+        private async Task<Dictionary<string, string>> GetTextAttachmentContents(IEnumerable<Discord.Attachment> attachments)
+        {
+            int timeoutInSeconds = 30;
+            long maxFileSizeInBytes = 5000000; // 5 MB
+
+            var responseStrings = new Dictionary<string, string>();
+
+            using (var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(timeoutInSeconds) })
+            {
+                // Add a Range header to limit the maximum file size
+                httpClient.DefaultRequestHeaders.Range = new RangeHeaderValue(0, maxFileSizeInBytes - 1);
+
+                foreach (var attachment in attachments)
+                {
+                    using (var response = await httpClient.GetAsync(attachment.Url))
+                    {
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            _logger.LogError($"Error code '{response.StatusCode}' from attachment '{attachment.Url}'. Not attaching to GPT Message.");
+                            continue;
+                        }
+
+                        string mimeType = response.Content.Headers.ContentType.MediaType;
+                        if (!textMimeTypes.Contains(mimeType))
+                        {
+                            _logger.LogWarning($"Skipping download of '{attachment.Filename}' due to mime type '{mimeType}'");
+                            continue;
+                        }
+
+                        try
+                        {
+                            byte[] contentBytes = await response.Content.ReadAsByteArrayAsync();
+
+                            // Try to detect the text encoding of the content
+                            Encoding encoding = null;
+                            try
+                            {
+                                encoding = Encoding.GetEncoding(response.Content.Headers.ContentType.CharSet);
+                            }
+                            catch (ArgumentException)
+                            {
+                                // Invalid character set specified, fall back to default encoding
+                                encoding = Encoding.Default;
+                            }
+
+                            // Use a fallback character set if the specified character set is invalid
+                            string contentString = encoding.GetString(contentBytes, 0, contentBytes.Length);
+
+                            if (!string.IsNullOrEmpty(contentString))
+                            {
+                                responseStrings[attachment.Filename] = contentString;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError($"Error decoding attachment '{attachment.Url}': {ex.Message}");
+                        }
+                    }
+                }
+            }
+
+            return responseStrings;
+        }
+
+        /// <summary>
+        /// Given a byte array attempts to determine if the data is a text based file or other type
+        /// </summary>
+        /// <param name="fileBytes"></param>
+        /// <param name="textContent"></param>
+        /// <returns></returns>
+        public static bool TryGetTextContent(byte[] fileBytes, out string textContent)
+        {
+            textContent = null;
+
+            // Try to detect the text encoding of the file
+            Encoding encoding = null;
+            try
+            {
+                encoding = Encoding.GetEncoding(0); // Use default encoding first
+                textContent = encoding.GetString(fileBytes); // Try to decode the file
+            }
+            catch (DecoderFallbackException)
+            {
+                // Could not decode file with default encoding
+            }
+
+            if (encoding != null && (encoding == Encoding.Default || !encoding.IsSingleByte))
+            {
+                // File is a text-based file
+                return true;
+            }
+            else
+            {
+                // File is not a text-based file
+                return false;
             }
         }
 
