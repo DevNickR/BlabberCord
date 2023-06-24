@@ -9,6 +9,9 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     steps:
+      - name: Add SHORT_SHA env property with commit short sha
+        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+
       - name: Checkout code
         uses: actions/checkout@v2
 
@@ -26,7 +29,7 @@ jobs:
         
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          key: ${{ runner.os }}-buildx-${SHORT_SHA}
           restore-keys: |
             ${{ runner.os }}-buildx-
 
@@ -37,7 +40,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/blabber-cord:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/blabber-cord:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/blabber-cord:${SHORT_SHA}
           platforms: linux/amd64,linux/arm64
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
