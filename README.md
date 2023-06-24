@@ -1,7 +1,7 @@
 
 # Blabber-Cord
 
-Blabber-Cord is a personal project, which is an AI-powered Discord bot using OpenAI's GPT-3.5-turbo and GPT-4.0 models. Others are free to use, fork, or run it as they please.
+Blabber-Cord is a personal project and an AI-powered Discord bot using OpenAI's GPT-3.5-turbo and GPT-4.0 models. The bot is designed to engage in interactive conversations with users and can be configured to adopt different personas. Users can invite the bot to various chat rooms and communicate with it via direct messages or by tagging it in a message. The project is open-source and others are free to use, fork, or run it as they please.
 
 ## Running the bot with Docker
 
@@ -16,6 +16,19 @@ docker run -d --name blabber-cord \
 ```
 Replace `YOUR_GPT_API_KEY` , `YOUR_DISCORD_TOKEN`  and `MODEL_NAME`. Alternatively you can mount and edit your own `appsettings.json` file within the container. 
 `Gpt:Model` supports `gpt-3.5-turbo` and `gpt-4` and will default to gpt-4 if not specified.
+
+## Features
+
+### Personas
+The bot has a personas feature. This utilizes the system command available via chat gpt. This is an initial prompt that directs chat gpt. To use this feature a `.txt` file with the persona name must be placed in the `/Personas` directory.
+For example: /Personas/Frank.txt
+```
+You are a helpful assistant named Frank
+```
+If running via docker, its recommended you mount this folder via a volume to persist the personas.
+### Message splitting
+Discord has limitations on the max message size allowed, because of this chat gpt will attempt to split messages when it deems it necessary. This will occur particularly when responses are extremely long, or when code snippets are sent. Currently this feature is limited as extremely long single lines or larger code snippets will still be split incorrectly.
+
 
 ## Getting a GPT API key
 
@@ -57,13 +70,3 @@ The bot maintains its history in memory. A restart will clear all of its memory.
 `/select-persona` will start the personas feature and allow you to select a persona. This will only apply to the channel its used in and will reset its chat history.
 `/reset-conversation` will reset the chat history of the bot.
 `/add-persona` given a name and a prompt this will save the prompt to your prompts folder (if this folder is not persisted this will not work, mount the Prompts folder to a volume if using docker), a restart will be required for this to allow you to use the new persona.
-## Features
-### Personas
-The bot has a personas feature. This utilizes the system command available via chat gpt. This is an initial prompt that directs chat gpt. To use this feature a `.txt` file with the persona name must be placed in the `/Personas` directory.
-For example: /Personas/Frank.txt
-```
-You are a helpful assistant named Frank
-```
-If running via docker, its recommended you mount this folder via a volume to persist the personas.
-### Message splitting
-Discord has limitations on the max message size allowed, because of this chat gpt will attempt to split messages when it deems it necessary. This will occur particularly when responses are extremely long, or when code snippets are sent. Currently this feature is limited as extremely long single lines or larger code snippets will still be split incorrectly.
