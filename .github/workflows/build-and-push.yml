@@ -29,7 +29,7 @@ jobs:
         
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${SHORT_SHA}
+          key: ${{ runner.os }}-buildx-${{ SHORT_SHA }}
           restore-keys: |
             ${{ runner.os }}-buildx-
 
@@ -40,7 +40,7 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/blabber-cord:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/blabber-cord:${SHORT_SHA}
+            ${{ secrets.DOCKERHUB_USERNAME }}/blabber-cord:${{ SHORT_SHA }}
           platforms: linux/amd64,linux/arm64
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
