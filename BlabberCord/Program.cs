@@ -61,7 +61,7 @@ namespace BlabberCord
                 )
                 .AddSingleton<DiscordService>()
                 .AddSingleton<GptService>()
-                .AddSingleton(new PersonaService("./Personas"))
+                .AddSingleton<PersonaService>()
                 ;
 
             return services;
