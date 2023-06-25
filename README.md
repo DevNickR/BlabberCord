@@ -17,6 +17,8 @@ docker run -d --name blabber-cord \
 Replace `YOUR_GPT_API_KEY` , `YOUR_DISCORD_TOKEN`  and `MODEL_NAME`. Alternatively you can mount and edit your own `appsettings.json` file within the container. 
 `Gpt:Model` supports `gpt-3.5-turbo` and `gpt-4` and will default to gpt-4 if not specified.
 
+Note: You may need to replace `:` with `__` ie: `Gpt:ApiKey` > `Gpt__ApiKey`
+
 ## Features
 
 ### Personas
@@ -60,7 +62,7 @@ To invite the bot to your server, follow these steps:
 Once the bot is added to your server, it will be able to respond to messages using the GPT-3.5-turbo or GPT-4.0 models, depending on your configuration.
 
 ## Using the bot
-The main method of communication is via direct message. However you can invite it the any room it has access to and chat with it by tagging it in a message. It will not response to channel messages without being tagged.
+The main method of communication is via direct message. However you can invite it the any room it has access to and chat with it by tagging it in a message. It will not responsd to channel messages without being tagged.
 If you use this in a public discord room with many people, you may experience issues with the bot reaching its chat history limit. Excessive use could also increase your billing. Use at your own risk.
 
 ### Channel history
@@ -70,3 +72,7 @@ The bot maintains its history in memory. A restart will clear all of its memory.
 `/select-persona` will start the personas feature and allow you to select a persona. This will only apply to the channel its used in and will reset its chat history.
 `/reset-conversation` will reset the chat history of the bot.
 `/add-persona` given a name and a prompt this will save the prompt to your prompts folder (if this folder is not persisted this will not work, mount the Prompts folder to a volume if using docker), a restart will be required for this to allow you to use the new persona.
+
+## Limitations
+- Discord text length: To get around this you can use text files (.txt or any plain text based file) which will be appended to the text with the filename in front of it with code snippet syntax in front (ie: use this to reference text, and not as direct messages)
+- GPT max length: Currently if your message, message history or the generated response breaks the token limit, you will need to reset the conversation. There is no way to go around this currently. You may find better luck switching the model out to one that supports greater MaxTokens (change max tokens in settings along with model)
