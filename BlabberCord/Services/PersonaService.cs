@@ -35,6 +35,25 @@ namespace BlabberCord.Services
             return _personas[_defaultPersonaName];
         }
 
+        public async Task AddPersona(string name, string prompt)
+        {
+            // Ensure the "Personas" folder exists in the current directory
+            string folderPath = Path.Combine(Environment.CurrentDirectory, "Personas");
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+            }
+
+            // Combine the folder path with the user-provided filename to create the full file path
+            string filePath = Path.Combine(folderPath, $"{name}.txt");
+
+            // Write the content to the file, overwriting it if it already exists
+            await File.WriteAllTextAsync(filePath, name);
+
+            Console.WriteLine($"Prompt saved to '{filePath}'");
+            _personas.Add(name, prompt);
+        }
+
         public List<string> GetPersonaNames()
         {
             return _personas.Keys.ToList();

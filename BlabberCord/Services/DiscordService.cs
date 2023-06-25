@@ -126,20 +126,9 @@ namespace BlabberCord.Services
 
             try
             {
-                // Ensure the "Personas" folder exists in the current directory
-                string folderPath = Path.Combine(Environment.CurrentDirectory, "Personas");
-                if (!Directory.Exists(folderPath))
-                {
-                    Directory.CreateDirectory(folderPath);
-                }
-
-                // Combine the folder path with the user-provided filename to create the full file path
-                string filePath = Path.Combine(folderPath, $"{personaName}.txt");
-
-                // Write the content to the file, overwriting it if it already exists
-                await File.WriteAllTextAsync(filePath, personaPrompt);
-
-                Console.WriteLine("File saved successfully.");
+                await _personaService.AddPersona(personaName, personaPrompt);
+                var personaNames = _personaService.GetPersonaNames();
+                await SetupPersonaSlashCommand(personaNames);
             }
             catch (Exception ex)
             {
@@ -147,7 +136,7 @@ namespace BlabberCord.Services
                 return;
             }
 
-            await slashCommand.RespondAsync($"Persona '{personaName}' created. Restart the BlabberCord service and use `/select-persona`", ephemeral: true);
+            await slashCommand.RespondAsync($"Persona '{personaName}' created. Wait for the persona to become available and use `/select-persona`", ephemeral: true);
         }
 
         private async Task HandleResetConversationCommand(SocketSlashCommand slashCommand)
@@ -456,29 +445,8 @@ namespace BlabberCord.Services
 
         private async Task ReadyAsync()
         {
-
             var personaNames = _personaService.GetPersonaNames();
-
-            var personaCommandOption = new SlashCommandOptionBuilder()
-                .WithName("persona")
-                .WithDescription("Select a persona you wish GPT to use and reset your conversation in this channel")
-                .WithRequired(true)
-                .WithType(ApplicationCommandOptionType.String)
-                ;
-            personaCommandOption.Choices = personaNames.Select(x => new ApplicationCommandOptionChoiceProperties() { Name = x, Value = x }).ToList();
-
-            var selectPersonaCommand = new SlashCommandBuilder()
-                .WithName("select-persona")
-                .WithDescription("Select a GPT persona")
-                .AddOption(personaCommandOption)
-                ;
-
-            var resetConverstionCommand = new SlashCommandBuilder()
-                .WithName("reset-conversation")
-                .WithDescription("Reset this channels conversation with chat GPT")
-                .AddOption(personaCommandOption)
-                ;
-
+            await SetupPersonaSlashCommand(personaNames);
 
             var addPersonaNameOption = new SlashCommandOptionBuilder()
                 .WithName("persona-name")
@@ -503,11 +471,35 @@ namespace BlabberCord.Services
                 .AddOption(addPersonaPromptNameOption)
                 ;
 
-            await _client.CreateGlobalApplicationCommandAsync(selectPersonaCommand.Build());
-            await _client.CreateGlobalApplicationCommandAsync(resetConverstionCommand.Build());
+
             await _client.CreateGlobalApplicationCommandAsync(addPersonaCommand.Build());
 
             _logger.LogInformation($"Connected as {_client.CurrentUser}. Available personas: {string.Join(", ", personaNames)}");
+        }
+
+        private async Task SetupPersonaSlashCommand(List<string> personaNames)
+        {
+            var personaCommandOption = new SlashCommandOptionBuilder()
+                .WithName("persona")
+                .WithDescription("Select a persona you wish GPT to use and reset your conversation in this channel")
+                .WithRequired(true)
+                .WithType(ApplicationCommandOptionType.String)
+                ;
+            personaCommandOption.Choices = personaNames.Select(x => new ApplicationCommandOptionChoiceProperties() { Name = x, Value = x }).ToList();
+
+            var selectPersonaCommand = new SlashCommandBuilder()
+                .WithName("select-persona")
+                .WithDescription("Select a GPT persona")
+                .AddOption(personaCommandOption)
+                ;
+            await _client.CreateGlobalApplicationCommandAsync(selectPersonaCommand.Build());
+
+            var resetConverstionCommand = new SlashCommandBuilder()
+                .WithName("reset-conversation")
+                .WithDescription("Reset this channels conversation with chat GPT")
+                .AddOption(personaCommandOption)
+                ;
+            await _client.CreateGlobalApplicationCommandAsync(resetConverstionCommand.Build());
         }
     }
 }
