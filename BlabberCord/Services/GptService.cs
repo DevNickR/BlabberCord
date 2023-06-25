@@ -1,5 +1,6 @@
 ﻿using BlabberCord.Models.Gpt;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System.Net.Http.Json;
@@ -12,6 +13,7 @@ namespace BlabberCord.Services
     {
         private readonly HttpClient _httpClient;
         private readonly PersonaService _personaService;
+        private readonly ILogger<GptService> _logger;
         private readonly string _apiEndpoint;
         private readonly GptSettings _gptSettings;
 
@@ -20,7 +22,7 @@ namespace BlabberCord.Services
         private const string GptSystemName = "system";
 
 
-        public GptService(IConfiguration configuration, PersonaService personasService)
+        public GptService(IConfiguration configuration, PersonaService personasService, ILogger<GptService> logger)
         {
             var apiKey = configuration["Gpt:ApiKey"];
             var model = configuration["Gpt:Model"];
@@ -43,6 +45,7 @@ namespace BlabberCord.Services
 
             _gptSettings = new GptSettings(apiKey, model, temperature.Value, maxTokens.Value, topP.Value, frequencyPenalty.Value, presencePenalty.Value);
             _personaService = personasService;
+            _logger = logger;
             _apiEndpoint = "https://api.openai.com/v1/chat/completions";
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_gptSettings.ApiKey}");
@@ -66,7 +69,7 @@ namespace BlabberCord.Services
             {
                 var errorContent = await response.Content.ReadFromJsonAsync<GptErrorResponse>();
                 var errMessage = $"GPT API request failed: {response.ReasonPhrase}. Code:'{errorContent?.Error?.Code}' Type:'{errorContent?.Error?.Type}' Message:'{errorContent?.Error?.Message}'";
-                Console.WriteLine(errMessage);
+                _logger.LogError(errMessage);
                 throw new Exception(errMessage);
             }
 

@@ -18,7 +18,7 @@ namespace BlabberCord.Services
             var directory = new DirectoryInfo("./Personas");
             foreach (var file in directory.GetFiles("*.txt"))
             {
-                Console.WriteLine($"Found persona file:{file.FullName}");
+                _logger.LogDebug($"Found persona file:{file.FullName}");
                 var name = Path.GetFileNameWithoutExtension(file.Name);
                 var value = File.ReadAllText(file.FullName);
                 _personas[name] = value;
@@ -50,7 +50,7 @@ namespace BlabberCord.Services
             // Write the content to the file, overwriting it if it already exists
             await File.WriteAllTextAsync(filePath, name);
 
-            Console.WriteLine($"Prompt saved to '{filePath}'");
+            _logger.LogDebug($"Prompt saved to '{filePath}'");
             _personas.Add(name, prompt);
         }
 
