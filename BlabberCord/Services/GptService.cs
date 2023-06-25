@@ -12,9 +12,8 @@ namespace BlabberCord.Services
     {
         private readonly HttpClient _httpClient;
         private readonly PersonaService _personaService;
-        private readonly string _gptApiKey;
-        private readonly string _gptModel;
         private readonly string _apiEndpoint;
+        private readonly GptSettings _gptSettings;
 
         private readonly Dictionary<ulong, List<GptMessage>> _conversations = new Dictionary<ulong, List<GptMessage>>();
 
@@ -27,12 +26,26 @@ namespace BlabberCord.Services
             var model = configuration["Gpt:Model"];
             if (string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(model)) throw new ArgumentNullException("Please set \"Gpt:ApiKey\" and \"Gpt:Model\" in appsettings.json or environment variables");
 
-            _gptApiKey = apiKey;
-            _gptModel = model;
+            var temperature = configuration.GetValue<double?>("Gpt:Temperature");
+            if (!temperature.HasValue) throw new ArgumentNullException("Please set \"Gpt:Temperature\" in appsettings.json or environment variables");
+
+            var maxTokens = configuration.GetValue<int?>("Gpt:MaxTokens");
+            if (!maxTokens.HasValue) throw new ArgumentNullException("Please set \"Gpt:MaxTokens\" in appsettings.json or environment variables");
+
+            var topP = configuration.GetValue<double?>("Gpt:TopP");
+            if (!topP.HasValue) throw new ArgumentNullException("Please set \"Gpt:TopP\" in appsettings.json or environment variables");
+
+            var frequencyPenalty = configuration.GetValue<double?>("Gpt:FrequencyPenalty");
+            if (!frequencyPenalty.HasValue) throw new ArgumentNullException("Please set \"Gpt:FrequencyPenalty\" in appsettings.json or environment variables");
+
+            var presencePenalty = configuration.GetValue<double?>("Gpt:PresencePenalty");
+            if (!presencePenalty.HasValue) throw new ArgumentNullException("Please set \"Gpt:PresencePenalty\" in appsettings.json or environment variables");
+
+            _gptSettings = new GptSettings(apiKey, model, temperature.Value, maxTokens.Value, topP.Value, frequencyPenalty.Value, presencePenalty.Value);
             _personaService = personasService;
             _apiEndpoint = "https://api.openai.com/v1/chat/completions";
             _httpClient = new HttpClient();
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_gptApiKey}");
+            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_gptSettings.ApiKey}");
         }
 
         public void ResetChannelMessages(ulong channelId)
@@ -87,13 +100,13 @@ namespace BlabberCord.Services
         {
             return new GptRequest
             {
-                Model = _gptModel,// "gpt-3.5-turbo",//gpt-4
+                Model = _gptSettings.Model, // "gpt-3.5-turbo",//gpt-4
                 Messages = _conversations[channelId],
-                Temperature = 0.7,
-                MaxTokens = 2048,
-                TopP = 1,
-                FrequencyPenalty = 1,
-                PresencePenalty = 1,
+                Temperature = _gptSettings.Temperature,
+                MaxTokens = _gptSettings.MaxTokens,
+                TopP = _gptSettings.TopP,
+                FrequencyPenalty = _gptSettings.FrequencyPenalty,
+                PresencePenalty = _gptSettings.PresencePenalty,
                 Stream = false
             };
         }
